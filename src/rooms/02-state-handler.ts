@@ -8,19 +8,19 @@ export class Player extends Schema {
     pX = Math.floor(Math.random() * this.planeSize) - this.planeSize / 2;
 
     @type("number")
-    pY = Math.floor(Math.random() * this.planeSize) - this.planeSize / 2;
+    pY = 0;
 
     @type("number")
     pZ = Math.floor(Math.random() * this.planeSize) - this.planeSize / 2;
 
     @type("number")
-    vX = Math.floor(Math.random() * this.planeSize) - this.planeSize / 2;
+    vX = 0;
 
     @type("number")
-    vY = Math.floor(Math.random() * this.planeSize) - this.planeSize / 2;
+    vY = 0;
 
     @type("number")
-    vZ = Math.floor(Math.random() * this.planeSize) - this.planeSize / 2;
+    vZ = 0;
 }
 
 export class State extends Schema {
