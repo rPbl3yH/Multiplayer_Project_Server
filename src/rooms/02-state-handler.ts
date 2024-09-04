@@ -8,6 +8,9 @@ export class Player extends Schema {
     @type("int16")
     hp = 0;
 
+    @type("uint16")
+    loss = 0;
+
     @type("number")
     speed = 0;
 
@@ -74,7 +77,7 @@ export class State extends Schema {
 }
 
 export class StateHandlerRoom extends Room<State> {
-    maxClients = 4;
+    maxClients = 2;
 
     onCreate (options) {
         console.log("StateHandlerRoom created!", options);
@@ -91,8 +94,34 @@ export class StateHandlerRoom extends Room<State> {
         })
 
         this.onMessage("damage", (client, data) => {
-            const player = this.state.players.get(data.id);
-            player.hp -= data.value;
+            const clientId = data.id;
+            const player = this.state.players.get(clientId);
+
+            let hp = player.hp - data.value;
+            
+            if(hp > 0){
+                player.hp = hp;
+                return;
+            }
+
+            player.loss++;
+            player.hp = player.maxHp;
+            
+            for (let i = 0; i < this.clients.length; i++) {
+                const otherClient = this.clients[i];
+                
+                if(otherClient.id != clientId){
+                    continue;
+                }
+
+                const planeSize = player.planeSize;
+                const x = Math.floor(Math.random() * planeSize) - planeSize / 2;
+                const z = Math.floor(Math.random() * planeSize) - planeSize / 2;
+
+                const restartData = JSON.stringify({x, z})
+
+                otherClient.send("Restart", restartData);
+            }
         })
     }
 
@@ -101,6 +130,10 @@ export class StateHandlerRoom extends Room<State> {
     }
 
     onJoin (client: Client, data: any) {
+        if(this.clients.length > 1){
+            this.lock();
+        }
+
         client.send("hello", "world");
         this.state.createPlayer(client.sessionId, data);
     }
