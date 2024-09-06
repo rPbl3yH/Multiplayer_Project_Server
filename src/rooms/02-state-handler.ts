@@ -2,6 +2,9 @@ import { Room, Client } from "colyseus";
 import { Schema, type, MapSchema } from "@colyseus/schema";
 
 export class Player extends Schema {
+    @type("int8")
+    skinIndex = 0;
+
     @type("int16")
     maxHp = 0;
 
@@ -14,16 +17,14 @@ export class Player extends Schema {
     @type("number")
     speed = 0;
 
-    planeSize = 10;
-
     @type("number")
-    pX = Math.floor(Math.random() * this.planeSize) - this.planeSize / 2;
+    pX = 0;
 
     @type("number")
     pY = 0;
 
     @type("number")
-    pZ = Math.floor(Math.random() * this.planeSize) - this.planeSize / 2;
+    pZ = 0;
 
     @type("number")
     vX = 0;
@@ -47,11 +48,18 @@ export class State extends Schema {
 
     something = "This attribute won't be sent to the client-side";
 
-    createPlayer(sessionId: string, data: any) {
+    createPlayer(sessionId: string, data: any, skin: number) {
         const player = new Player();
         player.speed = data.speed;
         player.maxHp = data.maxHp;
         player.hp = data.maxHp;
+        player.skinIndex = skin;
+
+        player.pX = data.pX;
+        player.pY = data.pY;
+        player.pZ = data.pZ;
+
+        player.rY = data.rY;
 
         this.players.set(sessionId, player);
     }
@@ -78,9 +86,16 @@ export class State extends Schema {
 
 export class StateHandlerRoom extends Room<State> {
     maxClients = 2;
+    pointsLength = 0;
+    skins: number[] = [];
 
     onCreate (options) {
         console.log("StateHandlerRoom created!", options);
+        this.pointsLength = options.pointsLength;
+
+        for (let index = 0; index < options.skins; index++) {
+            this.skins.push(index);
+        }
 
         this.setState(new State());
 
@@ -114,13 +129,8 @@ export class StateHandlerRoom extends Room<State> {
                     continue;
                 }
 
-                const planeSize = player.planeSize;
-                const x = Math.floor(Math.random() * planeSize) - planeSize / 2;
-                const z = Math.floor(Math.random() * planeSize) - planeSize / 2;
-
-                const restartData = JSON.stringify({x, z})
-
-                otherClient.send("Restart", restartData);
+                const pointIndex = Math.floor(Math.random() * this.pointsLength);
+                otherClient.send("Restart", pointIndex);
             }
         })
     }
@@ -134,8 +144,9 @@ export class StateHandlerRoom extends Room<State> {
             this.lock();
         }
 
-        client.send("hello", "world");
-        this.state.createPlayer(client.sessionId, data);
+        const skin = ArrayUtils.shuffleArray(this.skins)[0];
+                
+        this.state.createPlayer(client.sessionId, data, skin);
     }
 
     onLeave (client) {
@@ -146,3 +157,18 @@ export class StateHandlerRoom extends Room<State> {
         console.log("Dispose StateHandlerRoom");
     }
 }
+
+class ArrayUtils {
+    static shuffleArray<T>(array: T[]): T[] {
+        const arrayCopy = [...array];
+        
+        for (let i = arrayCopy.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            
+            [arrayCopy[i], arrayCopy[j]] = [arrayCopy[j], arrayCopy[i]];
+        }
+        
+        return arrayCopy;
+    }
+}
+
