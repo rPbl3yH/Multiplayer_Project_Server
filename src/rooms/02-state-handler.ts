@@ -15,7 +15,7 @@ export class Player extends Schema {
     loss = 0;
 
     @type("number")
-    speed = 0;
+    speed1 = 0;
 
     @type("number")
     pX = 0;
